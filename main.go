@@ -14,11 +14,12 @@ import (
 
 type Packet struct {
 	App     string      `json:"app"`
+	Err     string      `json:"error,omitempty"`
 	Content interface{} `json:"content"`
 }
 
-func emitPacket(app string, content interface{}) {
-	packet := &Packet{App: app, Content: content}
+func emitPacket(app, err string, content interface{}) {
+	packet := &Packet{App: app, Err: err, Content: content}
 	json.NewEncoder(os.Stdout).Encode(packet)
 }
 
@@ -58,10 +59,7 @@ func (r *Responses) Respond(request_id uuid.UUID, response *Response) {
 		c <- response
 		return
 	}
-
-	// action expected? none, just informational, warning actually
-	// TODO: should log something structured
-	fmt.Println("unknown request:", request_id)
+	emitPacket("http.response", "unknown request", response)
 }
 
 func main() {
@@ -73,15 +71,14 @@ func main() {
 			response := new(Response)
 			err := json.Unmarshal(scanner.Bytes(), response)
 			if err != nil {
-				// TODO should log something structured
-				// action expected? none, just informational, warning actually
-				panic(err)
+				emitPacket("http.response", fmt.Sprintf("malformed: %s", err), scanner.Text())
+				continue
 			}
-			fmt.Println("GOT RESPONSE", response)
 			responses.Respond(response.RequestID, response)
 		}
+		fmt.Println("SCANNER DONE")
 		if err := scanner.Err(); err != nil {
-			fmt.Println(err)
+			panic(err)
 		}
 	}()
 
@@ -103,11 +100,11 @@ func main() {
 			Body:       body,
 			RequestID:  requestID,
 		}
-		emitPacket("http.request", req)
+		emitPacket("http.request", "", req)
 
 		response := responses.Get(requestID)
-		// TODO: should log that we've responded
 		w.Write(response.Body)
+		emitPacket("http.response", "", response)
 	})
 
 	log.Fatal(http.ListenAndServe(":80", nil))
