@@ -1,6 +1,6 @@
 # http.sh
 
-Integrate a HTTP server into your shell pipelines
+*Integrate a HTTP server into your shell pipelines*
 
 Not quite sure where this is going to go...
 
@@ -28,5 +28,14 @@ tail -F requests | jq -c 'select(.app == "http.request") | .content | {request_i
 ```
 
 The curl in window 2 should now return with `ok`.
+
+## TODO
+
+If this does go somewhere, need to:
+
+- Formalize the packets written to stdout and read from stdin
+- It'll likely be nice if the `body` in the response can be a plain string
+- Should be able to set `status` and `headers` in the response
+- Support chunk transfer
 
 
