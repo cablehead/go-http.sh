@@ -9,6 +9,7 @@ import (
 	"math"
 	"net/http"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -30,23 +31,26 @@ type Response struct {
 
 type ResponseWaiters struct {
 	waiters map[uuid.UUID]chan *Response
+	sync.Mutex
 }
 
 func NewResponseWaiters() *ResponseWaiters {
 	return &ResponseWaiters{waiters: make(map[uuid.UUID]chan *Response)}
 }
 
-// TODO, need to lock waiters
-// add timeout
-// status codes
 func (r *ResponseWaiters) Get(request_id uuid.UUID) *Response {
 	c := make(chan *Response)
+	r.Lock()
 	r.waiters[request_id] = c
+	r.Unlock()
 	return <-c
 }
 
 func (r *ResponseWaiters) Respond(request_id uuid.UUID, response *Response) {
+	r.Lock()
+	defer r.Unlock()
 	if c, ok := r.waiters[request_id]; ok {
+		delete(r.waiters, request_id)
 		c <- response
 		return
 	}
