@@ -133,6 +133,7 @@ In window 3 you should see something like this. `took` is 0.4ms.
 ### TODO
 
 - Should be able to set `status` and `headers` in the response
+- Add a timeout for waiting on a response
 - Supporting chunk transfer could be interesting
 - Should be able to stream the body even if content-length can be known up front
 
