@@ -11,10 +11,10 @@ intuitive, but it works out well.
 The expected usage is to pipe a subscription from a message queue into STDIN
 and to pipe STDOUT to a message queue writer.
 
+### Example usage
+
 You can simulate a subscription from a message queue with `tail -F responses` and
 writing to a message queue with `tee requests`.
-
-### Example usage
 
 Run the HTTP server in window 1:
 
