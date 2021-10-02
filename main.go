@@ -8,19 +8,25 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/google/uuid"
 )
 
 type Packet struct {
 	App     string      `json:"app"`
-	Err     string      `json:"error,omitempty"`
 	Content interface{} `json:"content"`
 }
 
-func emitPacket(app, err string, content interface{}) {
-	packet := &Packet{App: app, Err: err, Content: content}
+func emitPacket(app string, content interface{}) {
+	packet := &Packet{App: app, Content: content}
 	json.NewEncoder(os.Stdout).Encode(packet)
+}
+
+type LogResponse struct {
+	Err      string        `json:"error"`
+	Took     time.Duration `json:"took"`
+	Response *Response     `json:"response"`
 }
 
 type Request struct {
@@ -59,7 +65,10 @@ func (r *Responses) Respond(request_id uuid.UUID, response *Response) {
 		c <- response
 		return
 	}
-	emitPacket("http.response", "unknown request", response)
+	emitPacket("http.response", &LogResponse{
+		Err:      "unknown request",
+		Response: response,
+	})
 }
 
 func main() {
@@ -71,7 +80,7 @@ func main() {
 			response := new(Response)
 			err := json.Unmarshal(scanner.Bytes(), response)
 			if err != nil {
-				emitPacket("http.response", fmt.Sprintf("malformed: %s", err), scanner.Text())
+				emitPacket("http.response", fmt.Sprintf("malformed: %s -- %s", err, scanner.Text()))
 				continue
 			}
 			responses.Respond(response.RequestID, response)
@@ -91,7 +100,6 @@ func main() {
 		}
 
 		requestID := uuid.New()
-
 		req := &Request{
 			Method:     r.Method,
 			Header:     r.Header,
@@ -100,12 +108,17 @@ func main() {
 			Body:       body,
 			RequestID:  requestID,
 		}
-		emitPacket("http.request", "", req)
 
+		// there's an almost impossible race condition here. if a responder can
+		// write to STDIN fast enough so a response is received before
+		// `responses.Get` is called, the response will be thrown away as an
+		// "unknown request"
+		emitPacket("http.request", req)
 		response := responses.Get(requestID)
+
 		w.Write(response.Body)
-		emitPacket("http.response", "", response)
+		emitPacket("http.response", response)
 	})
 
-	log.Fatal(http.ListenAndServe(":80", nil))
+	log.Fatal(http.ListenAndServe(":8080", nil))
 }
