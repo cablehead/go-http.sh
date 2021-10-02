@@ -92,11 +92,11 @@ Note how long the request `took`. That time is in milliseconds, so in this
 case, 32s. I need to get faster with `jo`!  We can automate reading requests
 and writing responses.
 
-Run this snippet in window 3. It tails the STDOUT of window 3, using `jq` to
-select only `http.request` messages, as the server also emits
-`http.repsonse.log` messages.  The actual request is under the `content` key.
-`jq` is used to generate the response schema, relaying the `request_id` and
-generating a base64 encoded `body` based on the `uri` of the request.
+Run this snippet in window 3. It tails `requests`, using `jq` to select only
+`http.request` messages, as the server also emits `http.repsonse.log` messages.
+The actual request is under the `content` key.  `jq` is used to generate the
+response schema, relaying the `request_id` and generating a base64 encoded
+`body` based on the `uri` of the request.
 
 ```
 # unbuffer jq by default. Life works out better that way.
