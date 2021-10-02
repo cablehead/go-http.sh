@@ -4,7 +4,7 @@
 
 Not quite sure where this is going to go...
 
-This is a small cli which writes HTTP requests to its stdout. It reads potential responses for these requests from its stdin.
+This is a small cli which writes HTTP requests to its stdout. It reads potential responses for these requests from its stdin. That part is  unintuitive, but it works out well.
 
 Example usage, in window 1:
 
