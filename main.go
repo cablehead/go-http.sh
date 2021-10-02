@@ -14,28 +14,11 @@ import (
 	"github.com/google/uuid"
 )
 
-type Packet struct {
-	App     string      `json:"app"`
-	Content interface{} `json:"content"`
-}
-
-func emitPacket(app string, content interface{}) {
-	packet := &Packet{App: app, Content: content}
-	json.NewEncoder(os.Stdout).Encode(packet)
-}
-
-type ResponseLog struct {
-	Err      string    `json:"error,omitempty"`
-	Took     float64   `json:"took,omitempty"`
-	Response *Response `json:"response,omitempty"`
-	Raw      []byte    `json:"raw,omitempty"`
-}
-
 type Request struct {
 	Method     string      `json:"method"`
 	Header     http.Header `json:"header"`
-	RemoteAddr string      `json:"request_addr"`
-	RequestURI string      `json:"request_uri"`
+	RemoteAddr string      `json:"remote_addr"`
+	RequestURI string      `json:"uri"`
 	Body       []byte      `json:"body"`
 	RequestID  uuid.UUID   `json:"request_id"`
 }
@@ -71,6 +54,23 @@ func (r *ResponseWaiters) Respond(request_id uuid.UUID, response *Response) {
 		Err:      "unknown request",
 		Response: response,
 	})
+}
+
+type ResponseLog struct {
+	Err      string    `json:"error,omitempty"`
+	Took     float64   `json:"took,omitempty"`
+	Response *Response `json:"response,omitempty"`
+	Raw      []byte    `json:"raw,omitempty"`
+}
+
+type Packet struct {
+	App     string      `json:"app"`
+	Content interface{} `json:"content"`
+}
+
+func emitPacket(app string, content interface{}) {
+	packet := &Packet{App: app, Content: content}
+	json.NewEncoder(os.Stdout).Encode(packet)
 }
 
 func main() {
