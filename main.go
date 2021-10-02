@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"net/http"
 	"os"
 	"time"
@@ -23,10 +24,11 @@ func emitPacket(app string, content interface{}) {
 	json.NewEncoder(os.Stdout).Encode(packet)
 }
 
-type LogResponse struct {
-	Err      string        `json:"error"`
-	Took     time.Duration `json:"took"`
-	Response *Response     `json:"response"`
+type ResponseLog struct {
+	Err      string    `json:"error,omitempty"`
+	Took     float64   `json:"took,omitempty"`
+	Response *Response `json:"response,omitempty"`
+	Raw      []byte    `json:"raw,omitempty"`
 }
 
 type Request struct {
@@ -65,7 +67,7 @@ func (r *Responses) Respond(request_id uuid.UUID, response *Response) {
 		c <- response
 		return
 	}
-	emitPacket("http.response", &LogResponse{
+	emitPacket("http.response.log", &ResponseLog{
 		Err:      "unknown request",
 		Response: response,
 	})
@@ -80,12 +82,14 @@ func main() {
 			response := new(Response)
 			err := json.Unmarshal(scanner.Bytes(), response)
 			if err != nil {
-				emitPacket("http.response", fmt.Sprintf("malformed: %s -- %s", err, scanner.Text()))
+				emitPacket("http.response.log", &ResponseLog{
+					Err: fmt.Sprintf("malformed: %s ", err),
+					Raw: scanner.Bytes(),
+				})
 				continue
 			}
 			responses.Respond(response.RequestID, response)
 		}
-		fmt.Println("SCANNER DONE")
 		if err := scanner.Err(); err != nil {
 			panic(err)
 		}
@@ -93,6 +97,8 @@ func main() {
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		defer r.Body.Close()
+
+		start := time.Now()
 
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -117,7 +123,12 @@ func main() {
 		response := responses.Get(requestID)
 
 		w.Write(response.Body)
-		emitPacket("http.response", response)
+
+		took := math.Round(float64(time.Since(start))/float64(time.Millisecond)*10) / 10
+		emitPacket("http.response.log", &ResponseLog{
+			Response: response,
+			Took:     took,
+		})
 	})
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
