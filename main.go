@@ -45,24 +45,24 @@ type Response struct {
 	RequestID uuid.UUID `json:"request_id"`
 }
 
-type Responses struct {
+type ResponseWaiters struct {
 	waiters map[uuid.UUID]chan *Response
 }
 
-func NewResponses() *Responses {
-	return &Responses{waiters: make(map[uuid.UUID]chan *Response)}
+func NewResponseWaiters() *ResponseWaiters {
+	return &ResponseWaiters{waiters: make(map[uuid.UUID]chan *Response)}
 }
 
 // TODO, need to lock waiters
 // add timeout
 // status codes
-func (r *Responses) Get(request_id uuid.UUID) *Response {
+func (r *ResponseWaiters) Get(request_id uuid.UUID) *Response {
 	c := make(chan *Response)
 	r.waiters[request_id] = c
 	return <-c
 }
 
-func (r *Responses) Respond(request_id uuid.UUID, response *Response) {
+func (r *ResponseWaiters) Respond(request_id uuid.UUID, response *Response) {
 	if c, ok := r.waiters[request_id]; ok {
 		c <- response
 		return
@@ -74,7 +74,7 @@ func (r *Responses) Respond(request_id uuid.UUID, response *Response) {
 }
 
 func main() {
-	responses := NewResponses()
+	responses := NewResponseWaiters()
 
 	go func() {
 		scanner := bufio.NewScanner(os.Stdin)
